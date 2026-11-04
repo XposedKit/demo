@@ -1,0 +1,55 @@
+name: Sync README.md
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  check:
+    if: vars.MODULE_REPO_NAME != ''
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: diff
+        name: Check README.md changes
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if ! git diff --quiet "$BEFORE" "$AFTER" -- README.md; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes"
+          fi
+
+  sync:
+    needs: check
+    if: fromJSON(needs.check.outputs.changed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Checkout Module repo
+        uses: actions/checkout@v7
+        with:
+          repository: Xposed-Modules-Repo/${{ vars.MODULE_REPO_NAME }}
+          token: ${{ secrets.MODULE_REPO_TOKEN }}
+          path: module-repo
+
+      - name: Copy file
+        run: cp README.md module-repo/README.md
+
+      - name: Push
+        working-directory: module-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "sync README.md" || echo "No changes"
+          git push

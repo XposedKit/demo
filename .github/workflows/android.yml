@@ -1,0 +1,68 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags: [ v* ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup JDK 11
+      uses: actions/setup-java@v6
+      with:
+        # to be replaced: java-version: '11'
+        java-version: |
+          8
+          11
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Checkout XposedKit repo
+      uses: actions/checkout@v7
+      with:
+        repository: XposedKit/XposedKit
+        path: xposedkit
+
+    # to be removed
+    - name: Publish XposedKit to local maven repository
+      run: |
+        cd xposedkit
+        chmod +x gradlew
+        ./gradlew publishToMavenLocal
+
+    - name: Write key
+      run: |
+        echo >> gradle.properties
+        echo android.storeFile='keystore.jks' >> gradle.properties
+        echo android.storePassword='${{ secrets.KEY_STORE_PASSWORD }}' >> gradle.properties
+        echo android.keyAlias='${{ secrets.KEY_ALIAS }}' >> gradle.properties
+        echo android.keyPassword='${{ secrets.KEY_PASSWORD }}' >> gradle.properties
+        echo ${{ secrets.KEY_STORE }} | base64 --decode > keystore.jks
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    - name: Prepare artifact
+      id: prepare_artifact
+      run: |
+        cd ./app/build/outputs
+        output_dir="$RUNNER_TEMP/artifacts"
+        mkdir -p "$output_dir"
+        cp -r ./mapping "$output_dir"
+        find ./apk -type f -name "*.apk" -exec sudo cp {} "$output_dir" \;
+        echo "output=$output_dir" >> $GITHUB_OUTPUT
+        echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ github.event.repository.name }}-${{ steps.prepare_artifact.outputs.short_sha }}
+        path: ${{ steps.prepare_artifact.outputs.output }}

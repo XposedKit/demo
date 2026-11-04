@@ -1,0 +1,10 @@
+[versions]
+agp = "9.5.0"
+kotlin = "2.4.21"
+xposedkit = "1.0.0"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+xposedkit = { id = "cc.meteormc.xposedkit.plugin", version.ref = "xposedkit" }
