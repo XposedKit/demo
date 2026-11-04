@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "xposedkit-template"
+rootProject.name = "xposedkit-demo"
 include(":api")
 include(":app")
 include(":xposed")

@@ -1,4 +1,4 @@
-package cc.meteormc.xposedkit.template.ui
+package cc.meteormc.xposedkit.demo.ui
 
 import android.app.Activity
 
